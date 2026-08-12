@@ -17,6 +17,10 @@ public final class TeamChatEvents {
         ServerMessageEvents.ALLOW_CHAT_MESSAGE.register((message, player, params) -> {
             if (!(player instanceof ServerPlayerEntity serverPlayer)) return true;
             if (ChatInputManager.isWaiting(serverPlayer.getUuid())) return true;
+            if (!JustTeamsFabric.permissions().has(serverPlayer, JustTeamsPermissions.COMMAND_CHAT)) {
+                TeamChatManager.disable(serverPlayer.getUuid());
+                return true;
+            }
 
             Team team = TeamChatManager.getActiveTeam(serverPlayer);
             if (team == null) {
