@@ -3,12 +3,15 @@ package eu.kotori.justTeams;
 import eu.kotori.justTeams.commands.TeamCommand;
 import eu.kotori.justTeams.config.JustTeamsConfig;
 import eu.kotori.justTeams.gameplay.TeamFriendlyFire;
+import eu.kotori.justTeams.permission.LuckPermsPermissionService;
+import eu.kotori.justTeams.permission.PermissionService;
 import eu.kotori.justTeams.storage.TeamStorage;
 import eu.kotori.justTeams.team.TeamManager;
 import eu.kotori.justTeams.util.ChatInputEvents;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.MinecraftServer;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,17 +24,19 @@ public final class JustTeamsFabric implements ModInitializer {
     private static TeamManager teamManager;
     private static TeamStorage teamStorage;
     private static JustTeamsConfig config;
+    private static PermissionService permissionService;
 
     @Override
     public void onInitialize() {
         try {
-            config = new JustTeamsConfig(net.fabricmc.loader.api.FabricLoader.getInstance().getConfigDir());
+            config = new JustTeamsConfig(FabricLoader.getInstance().getConfigDir());
         } catch (IOException exception) {
             throw new RuntimeException("Unable to load JustTeams configuration", exception);
         }
 
         teamManager = new TeamManager();
         teamStorage = new TeamStorage();
+        permissionService = createPermissionService();
 
         ServerLifecycleEvents.SERVER_STARTING.register(this::loadTeamData);
         ServerLifecycleEvents.AFTER_SAVE.register((server, flush, force) -> saveTeamData(server, false));
@@ -41,6 +46,18 @@ public final class JustTeamsFabric implements ModInitializer {
         ChatInputEvents.register();
         TeamFriendlyFire.register();
         LOGGER.info("JustTeams Fabric core initialized");
+    }
+
+    private static PermissionService createPermissionService() {
+        if (FabricLoader.getInstance().isModLoaded("luckperms")) {
+            try {
+                LOGGER.info("LuckPerms detected; enabling JustTeams LuckPerms permissions");
+                return new LuckPermsPermissionService();
+            } catch (RuntimeException exception) {
+                LOGGER.warn("LuckPerms was detected but its API could not be initialized; using default JustTeams permissions", exception);
+            }
+        }
+        return PermissionService.defaults();
     }
 
     private void loadTeamData(MinecraftServer server) {
@@ -74,5 +91,10 @@ public final class JustTeamsFabric implements ModInitializer {
     public static JustTeamsConfig config() {
         if (config == null) throw new IllegalStateException("JustTeams has not initialized");
         return config;
+    }
+
+    public static PermissionService permissions() {
+        if (permissionService == null) throw new IllegalStateException("JustTeams has not initialized");
+        return permissionService;
     }
 }

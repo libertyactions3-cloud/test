@@ -1,6 +1,7 @@
 package eu.kotori.justTeams.gui;
 
 import eu.kotori.justTeams.JustTeamsFabric;
+import eu.kotori.justTeams.permission.JustTeamsPermissions;
 import eu.kotori.justTeams.team.Team;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.screen.slot.SlotActionType;
@@ -47,7 +48,14 @@ public final class TeamGuiManager {
             case 46 -> player.sendMessage(Text.literal("Team Ender Chest is the next GUI module."), true);
             case 47 -> TeamHomeGui.open(player, team);
             case 48 -> player.sendMessage(Text.literal("Team Ender Chest is the next GUI module."), true);
-            case 50 -> TeamBankGui.open(player, team);
+            case 50 -> {
+                if (player instanceof ServerPlayerEntity serverPlayer
+                        && JustTeamsFabric.permissions().has(serverPlayer, JustTeamsPermissions.COMMAND_BANK)) {
+                    TeamBankGui.open(player, team);
+                } else {
+                    player.sendMessage(Text.literal("You do not have permission to use the team bank."), true);
+                }
+            }
             case 7 -> TeamWarpGui.open(player, team);
             default -> { }
         }

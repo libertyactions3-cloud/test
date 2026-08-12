@@ -54,7 +54,7 @@ public final class TeamBank extends SimpleInventory {
 
     @Override
     public boolean canPlayerUse(PlayerEntity player) {
-        return true;
+        return team.isMember(player.getUuid());
     }
 
     /**
