@@ -6,6 +6,7 @@ import eu.kotori.justTeams.JustTeamsFabric;
 import eu.kotori.justTeams.chat.TeamChatManager;
 import eu.kotori.justTeams.gui.JoinRequestGui;
 import eu.kotori.justTeams.gui.TeamGuiManager;
+import eu.kotori.justTeams.permission.JustTeamsPermissions;
 import eu.kotori.justTeams.team.Team;
 import eu.kotori.justTeams.team.TeamLocation;
 import eu.kotori.justTeams.team.TeamPlayer;
@@ -107,6 +108,10 @@ public final class TeamCommand {
 
     private static int toggleChat(ServerCommandSource source) throws Exception {
         ServerPlayerEntity player = source.getPlayerOrThrow();
+        if (!JustTeamsFabric.permissions().has(player, JustTeamsPermissions.COMMAND_CHAT)) {
+            source.sendError(Text.literal("You do not have permission to use team chat."));
+            return 0;
+        }
         Team team = JustTeamsFabric.teams().getTeam(player.getUuid());
         if (team == null) {
             source.sendError(Text.literal("You are not in a team."));
