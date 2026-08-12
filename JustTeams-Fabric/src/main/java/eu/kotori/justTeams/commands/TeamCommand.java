@@ -3,6 +3,7 @@ package eu.kotori.justTeams.commands;
 import com.mojang.brigadier.CommandDispatcher;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import eu.kotori.justTeams.JustTeamsFabric;
+import eu.kotori.justTeams.chat.TeamChatManager;
 import eu.kotori.justTeams.gui.JoinRequestGui;
 import eu.kotori.justTeams.gui.TeamGuiManager;
 import eu.kotori.justTeams.team.Team;
@@ -86,10 +87,7 @@ public final class TeamCommand {
                 .then(CommandManager.literal("requests")
                         .executes(c -> run(c.getSource(), () -> openRequests(c.getSource()))))
                 .then(CommandManager.literal("chat")
-                        .executes(c -> {
-                            c.getSource().sendFeedback(() -> Text.literal("Team chat is being ported next."), false);
-                            return 1;
-                        })));
+                        .executes(c -> run(c.getSource(), () -> toggleChat(c.getSource())))));
     }
 
     @FunctionalInterface
@@ -106,6 +104,18 @@ public final class TeamCommand {
     }
 
     private static int openGui(ServerCommandSource source) throws Exception { TeamGuiManager.openMain(source.getPlayerOrThrow()); return 1; }
+
+    private static int toggleChat(ServerCommandSource source) throws Exception {
+        ServerPlayerEntity player = source.getPlayerOrThrow();
+        Team team = JustTeamsFabric.teams().getTeam(player.getUuid());
+        if (team == null) {
+            source.sendError(Text.literal("You are not in a team."));
+            return 0;
+        }
+        boolean enabled = TeamChatManager.toggle(player);
+        source.sendFeedback(() -> Text.literal(enabled ? "Team chat enabled. Your chat messages will only be sent to team members." : "Team chat disabled. Your chat messages are public again."), false);
+        return 1;
+    }
 
     private static int create(ServerCommandSource s, String name, String tag) throws Exception {
         ServerPlayerEntity p = s.getPlayerOrThrow();
@@ -130,6 +140,7 @@ public final class TeamCommand {
         ServerPlayerEntity p = s.getPlayerOrThrow(); Team t = JustTeamsFabric.teams().getTeam(p.getUuid());
         if (t == null) { s.sendError(Text.literal("You are not in a team.")); return 0; }
         if (t.isOwner(p.getUuid())) { s.sendError(Text.literal("The owner cannot leave the team. Use /team disband.")); return 0; }
+        TeamChatManager.disable(p.getUuid());
         JustTeamsFabric.teams().removeMember(t, p.getUuid()); JustTeamsFabric.storage().save(JustTeamsFabric.teams());
         s.sendFeedback(() -> Text.literal("You left " + t.getName() + "."), false); return 1;
     }
@@ -137,6 +148,7 @@ public final class TeamCommand {
     private static int disband(ServerCommandSource s) throws Exception {
         ServerPlayerEntity p = s.getPlayerOrThrow(); Team t = JustTeamsFabric.teams().getTeam(p.getUuid());
         if (t == null || !t.isOwner(p.getUuid())) { s.sendError(Text.literal("You do not own a team.")); return 0; }
+        for (TeamPlayer member : t.getMembers()) TeamChatManager.disable(member.getPlayerUuid());
         JustTeamsFabric.teams().unregister(t); JustTeamsFabric.storage().save(JustTeamsFabric.teams());
         s.sendFeedback(() -> Text.literal("Disbanded " + t.getName() + "."), false); return 1;
     }
