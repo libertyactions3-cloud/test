@@ -2,23 +2,21 @@
 
 ## Purpose
 
-This document is the persistent implementation checklist, completed-work ledger, and resume point for the Fabric recreation of JustTeams.
+This document is the persistent implementation checklist, completed-work ledger, investigation notebook, and resume point for the Fabric recreation of JustTeams.
 
-Rules for maintaining this document:
+### Working rules
 
-1. Update it after each meaningful implementation, verification, or roadmap checkpoint.
-2. Record completed work separately from work that merely exists in the codebase but has not yet been behaviorally audited.
+1. Update this document after meaningful implementation, verification, or roadmap checkpoints.
+2. Record completed work separately from code that merely compiles.
 3. Record deliberate deviations explicitly.
-4. Before starting a new implementation area, consult this file to avoid repeating completed work.
-5. Do not mark an area fully replicated solely because the project compiles.
-
-The goal is feature and behavior parity with the reference implementation where that behavior can be verified. The team bank is currently the explicit deliberate exception.
+4. Consult this file before beginning a feature so completed work is not repeated.
+5. Do not mark a feature replicated solely because the build succeeds.
+6. When reference behavior is uncertain, document the uncertainty and ask the user for a specific reference rather than inventing behavior.
+7. When navigating the reference source, use call-chain and resemblance searching, not only exact class/permission-name searches.
 
 ## Version Constraints
 
-All API work must match the versions pinned by this repository. Do not substitute APIs from newer or older Minecraft, Yarn, Fabric API, Fabric Loader, or Loom versions without verifying compatibility.
-
-Current project baseline:
+API compatibility is a hard constraint. Every implementation must be verified against the exact versions pinned by the Fabric project.
 
 - Minecraft: `1.21.11`
 - Yarn mappings: `1.21.11+build.4`
@@ -26,44 +24,41 @@ Current project baseline:
 - Fabric API: `0.141.4+1.21.11`
 - Fabric Loom observed during builds: `1.15.5`
 
+Do not copy an API call from documentation/source for another Minecraft, Yarn, Fabric API, Loader, or Loom version without first verifying the matching version.
+
 ## Build Cadence
 
-Work proceeds in cycles of up to **10 repository/activity rounds**, followed by:
+Work proceeds in cycles of up to **10 repository/activity rounds**, followed by a user build:
 
 ```powershell
 ./gradlew clean build --refresh-dependencies
 ```
 
-Latest recorded user build checkpoint:
+Latest recorded successful user build checkpoint:
 
 - `BUILD SUCCESSFUL`
 - Fabric Loom `1.15.5`
 - 8 actionable tasks executed
 - approximately 2m 52s
 
-This successful build is the baseline for the current cycle.
-
 ## Deliberate Exception: Team Bank
 
-The bank intentionally does **not** use a generic economy provider.
-
-Instead:
+The bank intentionally does not use a generic economy provider.
 
 - A team bank is represented by a chest-style inventory.
 - Only items configured in `justteams.properties` as currency may be deposited.
 - Withdrawals remain permission-controlled.
 - `justteams.bypass.bank.withdraw` bypasses the member withdrawal restriction.
 - The bank feature can be disabled through configuration.
-
-Default configured currency items currently include emerald, emerald block, and deepslate emerald ore.
+- Default configured currency items currently include emerald, emerald block, and deepslate emerald ore.
 
 ## Completed / Verified Infrastructure
 
-These items have already reached meaningful implementation or verification milestones and should not be restarted from scratch:
+These areas have reached meaningful implementation or build-verification milestones. Do not recreate them from scratch without a specific parity issue:
 
 - Project builds successfully against the current pinned dependency set.
-- Team persistence infrastructure exists and has been brought through multiple API compatibility fixes.
-- Persistent item-backed bank storage has replaced the earlier generic economy-provider approach.
+- Team persistence infrastructure exists and has gone through multiple API compatibility fixes.
+- Persistent item-backed bank storage replaced the earlier generic economy-provider approach.
 - LuckPerms-aware permission handling exists with fallback behavior when LuckPerms is unavailable.
 - Team chat routing exists and uses the corrected server lookup path compatible with the current mappings.
 - Friendly-fire/PvP handling is registered through Fabric's server living-entity damage event and checks team membership plus persisted PvP state.
@@ -71,7 +66,64 @@ These items have already reached meaningful implementation or verification miles
 - Team GUI and settings GUI infrastructure exist.
 - The canonical permission class mirrors a substantial set of established JustTeams command and bypass nodes.
 
-These areas still require feature-parity and runtime auditing; they are not automatically classified as fully replicated.
+These still require behavioral parity auditing before final acceptance.
+
+## Reference-Source Navigation Method
+
+When a reference implementation is available, use the following investigation sequence:
+
+### 1. Start from a known caller
+
+If a command calls something such as:
+
+```java
+teamManager.toggleGlow(player);
+```
+
+trace that method rather than guessing a class name.
+
+### 2. Search by resemblance, not just exact feature names
+
+Useful search terms include:
+
+- called method names
+- method signatures
+- field names (`glow`, `glowEnabled`, etc.)
+- configuration keys (`team_glow`)
+- user-facing messages
+- API operations likely to implement the behavior
+- imports used by the feature
+- nearby methods in the same manager
+- lifecycle events
+- permission-check patterns such as `hasPermission`, `hasElevatedPermissions`, `isOp`, wildcard permissions, and admin checks
+
+### 3. Follow the behavioral call chain
+
+For a feature, establish:
+
+```text
+command/UI
+  -> authorization
+  -> state change
+  -> actual gameplay/rendering mechanism
+  -> affected players
+  -> lifecycle updates/cleanup
+  -> persistence
+```
+
+### 4. Search permission context broadly
+
+Do not assume one command has one permission node. A single permission may authorize multiple commands, or a command may instead be controlled by a team role, feature flag, or admin permission.
+
+Inspect the surrounding authorization code and permission definitions before adding a new Fabric permission constant.
+
+### 5. Translate only after the reference behavior is established
+
+After the reference behavior is understood, find the equivalent API in the pinned Fabric/Yarn version. Verify the exact method/class signature against that version before committing code.
+
+### 6. Build after implementation
+
+Use the user's actual Gradle build as the final compilation verification. A successful build confirms compilation, not complete behavioral parity.
 
 ## Implemented Areas Requiring Behavioral Audit
 
@@ -92,27 +144,33 @@ Audit the existing implementation rather than recreating these systems:
 
 ## Known Gaps / Active Investigations
 
-### Team glow — ACTIVE
+### Team Glow — ACTIVE
 
 `Team` contains a persisted `glowEnabled` setting and storage restores it after restart.
 
-The reference JustTeams feature set includes team glow, so this is not dead state to remove.
+Reference behavior already verified:
 
-Current Fabric status:
+- `/team glow` exists.
+- It is gated by the `team_glow` feature configuration.
+- The player must belong to a team.
+- The player must have elevated team permissions, meaning Owner or Co-Owner in the reference role model.
+- There is no verified dedicated `justteams.command.glow` permission check in the command handler.
+- The actual command calls `teamManager.toggleGlow(player)`.
 
-- persisted state exists
-- no verified `/team glow` command is currently present in the audited command surface
-- no glow entry was found in the audited team settings GUI
-- the current canonical permission class does not yet list a dedicated glow command node
-- actual teammate highlighting still requires implementation and lifecycle cleanup
+Therefore, do **not** invent a dedicated glow permission merely because a glow command exists.
+
+The unresolved part is the implementation behind `toggleGlow` and its lifecycle behavior.
 
 Required work:
 
-1. Verify exact reference permission and activation semantics.
-2. Add command/UI access using the verified behavior.
-3. Implement teammate glow against the pinned 1.21.11/Yarn/Fabric API surface.
-4. Correctly update glow when members join/leave, teams disband, settings change, and players disconnect/reconnect.
-5. Add runtime testing before marking replicated.
+1. Trace the reference implementation of `TeamManager.toggleGlow`.
+2. Determine exactly how teammate highlighting is transmitted/rendered.
+3. Determine whose glow is visible to whom.
+4. Determine how the team color is applied.
+5. Determine join, leave, disconnect, reconnect, respawn, world-change, disband, and disable cleanup behavior.
+6. Translate the verified mechanism to the pinned 1.21.11/Yarn/Fabric API surface.
+7. Add the command/UI integration using the verified authorization model.
+8. Runtime-test the feature before marking it replicated.
 
 ### Team Ender Chest — ACTIVE / REFERENCE VERIFICATION REQUIRED
 
@@ -132,9 +190,9 @@ Do not assume the presence of a constant means every handler checks it correctly
 
 ## Remaining Completion Roadmap
 
-### A. Complete active glow investigation
+### A. Complete team glow
 
-Finish the reference audit, implementation, lifecycle handling, and runtime tests.
+Reference audit -> API verification -> implementation -> lifecycle handling -> runtime testing.
 
 ### B. Resolve Team Ender Chest placeholders
 
@@ -162,6 +220,7 @@ Verify exact JustTeams permission behavior, including:
 - bypass permissions
 - chat spy
 - feature-specific nodes
+- grouped permissions
 - LuckPerms-present and LuckPerms-absent behavior
 
 ### E. GUI audit
@@ -179,14 +238,14 @@ For every persisted feature:
 3. Restart.
 4. Verify exact state restoration.
 
-This includes teams, membership, ownership/co-ownership, invitations, join requests, homes, warps, settings, PvP state, bank contents, glow state, and any other persisted state.
+Include teams, membership, ownership/co-ownership, invitations, join requests, homes, warps, settings, PvP state, bank contents, glow state, and other persisted state.
 
 ### G. Multiplayer and edge-case testing
 
 Test:
 
 - multiple simultaneous teams
-- invite and request races/duplicates
+- invite/request races and duplicates
 - leave/disband edge cases
 - private/public access
 - team chat isolation
@@ -215,31 +274,34 @@ Before release:
 
 ### J. Final acceptance checklist
 
-Classify each reference capability as exactly one of:
+Classify every reference capability as exactly one of:
 
 - **Replicated**
 - **Deliberate exception**
 - **Not applicable**
 - **Still missing**
 
-The project should not be considered complete merely because it compiles.
+The project is not complete merely because it compiles.
 
 ## Current Cycle
 
 Current cycle limit: **10 rounds**.
 
-Completed in current cycle:
+Recorded checkpoints:
 
 - **Round 1/10:** Verified that `glowEnabled` is persisted team state and should not be casually removed.
-- **Round 2/10:** Verified that team glow belongs to the JustTeams feature set; identified the missing Fabric command/UI/gameplay integration and the separate Team Ender Chest placeholders.
-- **Round 3/10:** Reconciled completed infrastructure, active investigations, known gaps, and the remaining roadmap into this persistent project ledger.
+- **Round 2/10:** Verified that team glow belongs to the JustTeams feature set; identified missing Fabric command/UI/gameplay integration and separate Team Ender Chest placeholders.
+- **Round 3/10:** Reconciled completed infrastructure, active investigations, known gaps, and remaining roadmap into the persistent project ledger.
+- **Round 4/10:** Reference investigation established `/team glow` authorization: `team_glow` feature flag + team membership + Owner/Co-Owner (`hasElevatedPermissions`).
+- **Round 5/10:** Verified there is no dedicated glow command permission check in the reference handler; authorization must not be invented as `justteams.command.glow`.
+- **Round 6/10:** Established the next reference-tracing target as `TeamManager.toggleGlow(player)` and documented the call-chain/resemblance-search methodology.
 
 ## Current Resume Point
 
-Next implementation task:
+**Next task: trace `TeamManager.toggleGlow(player)` in the 2.5.3 reference.**
 
-1. Continue the team-glow reference audit with strict permission/API matching.
-2. Inspect the exact command and gameplay integration points needed for glow.
-3. Only then make the smallest verified repository changes required.
+Use resemblance/call-chain searching if exact repository search fails. Look for the actual state mutation and rendering/visibility mechanism before making Fabric changes.
 
-Before beginning any unrelated feature, review this document to determine whether the work is already completed, already under investigation, or intentionally deferred.
+If the reference source cannot be accessed or indexed sufficiently, tell the user exactly what reference is needed and why.
+
+Before beginning unrelated work, consult this document so completed work and established investigation methods are not repeated.
