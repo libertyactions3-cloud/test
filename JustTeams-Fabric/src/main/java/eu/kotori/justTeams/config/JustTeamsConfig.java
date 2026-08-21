@@ -13,7 +13,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.EnumMap;
 import java.util.LinkedHashSet;
-import java.util.Map;
 import java.util.Properties;
 import java.util.Set;
 
@@ -44,6 +43,8 @@ public final class JustTeamsConfig {
             properties.setProperty("glow.colors.owner", "RED");
             properties.setProperty("glow.colors.co-owner", "DARK_RED");
             properties.setProperty("glow.colors.member", "WHITE");
+            properties.setProperty("enderchest.enabled", "true");
+            properties.setProperty("enderchest.rows", "3");
             save();
         }
 
@@ -61,6 +62,13 @@ public final class JustTeamsConfig {
     }
 
     public boolean isBankEnabled() { return Boolean.parseBoolean(properties.getProperty("bank.enabled", "true")); }
+    public boolean isEnderChestEnabled() { return Boolean.parseBoolean(properties.getProperty("enderchest.enabled", "true")); }
+    public int getEnderChestRows() {
+        int rows;
+        try { rows = Integer.parseInt(properties.getProperty("enderchest.rows", "3")); }
+        catch (NumberFormatException ignored) { rows = 3; }
+        return Math.max(1, Math.min(6, rows));
+    }
     public Set<Item> getCurrencyItems() { return currencyItems; }
     public Path getFile() { return file; }
     public Formatting getGlowColor(TeamRole role) { return glowColors.getOrDefault(role, Formatting.WHITE); }
