@@ -5,6 +5,7 @@ import com.mojang.brigadier.arguments.StringArgumentType;
 import eu.kotori.justTeams.JustTeamsFabric;
 import eu.kotori.justTeams.chat.TeamChatManager;
 import eu.kotori.justTeams.gui.JoinRequestGui;
+import eu.kotori.justTeams.gui.TeamEnderChestGui;
 import eu.kotori.justTeams.gui.TeamGuiManager;
 import eu.kotori.justTeams.permission.JustTeamsPermissions;
 import eu.kotori.justTeams.team.Team;
@@ -41,6 +42,8 @@ public final class TeamCommand {
                 .then(CommandManager.literal("disband").executes(c -> run(c.getSource(), JustTeamsPermissions.COMMAND_DISBAND, () -> disband(c.getSource()))))
                 .then(CommandManager.literal("pvp").executes(c -> run(c.getSource(), JustTeamsPermissions.COMMAND_PVP, () -> togglePvp(c.getSource()))))
                 .then(CommandManager.literal("glow").executes(c -> run(c.getSource(), JustTeamsPermissions.USER, () -> toggleGlow(c.getSource()))))
+                .then(CommandManager.literal("enderchest").executes(c -> run(c.getSource(), JustTeamsPermissions.COMMAND_ENDERCHEST, () -> openEnderChest(c.getSource()))))
+                .then(CommandManager.literal("ec").executes(c -> run(c.getSource(), JustTeamsPermissions.COMMAND_ENDERCHEST, () -> openEnderChest(c.getSource()))))
                 .then(CommandManager.literal("home")
                         .executes(c -> run(c.getSource(), JustTeamsPermissions.COMMAND_HOME, () -> useHome(c.getSource())))
                         .then(CommandManager.literal("set").executes(c -> run(c.getSource(), JustTeamsPermissions.COMMAND_SETHOME, () -> setHome(c.getSource()))))
@@ -87,6 +90,14 @@ public final class TeamCommand {
     }
 
     private static int openGui(ServerCommandSource source) throws Exception { TeamGuiManager.openMain(source.getPlayerOrThrow()); return 1; }
+
+    private static int openEnderChest(ServerCommandSource source) throws Exception {
+        ServerPlayerEntity player = source.getPlayerOrThrow();
+        Team team = JustTeamsFabric.teams().getTeam(player.getUuid());
+        if (team == null) { source.sendError(Text.literal("You are not in a team.")); return 0; }
+        TeamEnderChestGui.open(player, team);
+        return 1;
+    }
 
     private static int toggleChat(ServerCommandSource source) throws Exception {
         ServerPlayerEntity player = source.getPlayerOrThrow();
