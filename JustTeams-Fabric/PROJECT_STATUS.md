@@ -111,7 +111,7 @@ Reference behavior from justTeams 2.5.3 has been established:
 - Added `TeamEnderChestGui` with membership, `canUseEnderChest`, and bypass authorization.
 - Added `TeamEnderChestScreenHandler` using the appropriate vanilla generic chest handler for the configured row count.
 - Replaced Team GUI slot 46's Ender Chest placeholder with `TeamEnderChestGui.open(...)`.
-- `justteams.command.enderchest` already exists in the canonical permission set.
+- Added `/team enderchest` and `/team ec` using `justteams.command.enderchest`.
 
 ### Important current correction
 
@@ -120,6 +120,7 @@ The branch's Ender Chest work was initially ahead of its supporting `Team`, conf
 - `Team` owns optional `TeamEnderChest` state.
 - `JustTeamsConfig` exposes the referenced Ender Chest settings.
 - `TeamStorage` writes and restores the inventory.
+- Command aliases now exist.
 
 No clean build has been run to validate these changes because the user explicitly requires waiting until Round 10.
 
@@ -131,13 +132,12 @@ Therefore this is **not** to be silently classified as replicated. For the final
 
 ## Round 8 remaining work
 
-1. Verify `/team ec` is present as an alias with the same authorization semantics as `/team enderchest`.
-2. Audit Ender Chest open/close behavior against the reference, including multiple simultaneous viewers.
-3. Audit leave/disband behavior while a member has the shared Ender Chest open.
-4. Audit disconnect/forced screen-close behavior so viewers cannot remain registered indefinitely.
-5. Verify persistence semantics for empty and non-empty inventories and configured row counts.
-6. Verify GUI authorization and command authorization against the exact 2.5.3 reference.
-7. Update this document after the above parity checks.
+1. Audit Ender Chest open/close behavior against the reference, including multiple simultaneous viewers.
+2. Audit leave/disband behavior while a member has the shared Ender Chest open.
+3. Audit disconnect/forced screen-close behavior so viewers cannot remain registered indefinitely.
+4. Verify persistence semantics for empty and non-empty inventories and configured row counts.
+5. Verify GUI and command authorization against the exact 2.5.3 reference.
+6. Update this document after the lifecycle/parity checks.
 
 ## Permission parity — ACTIVE
 
@@ -166,6 +166,6 @@ Audit every implemented feature against 2.5.3 for commands, permissions, state t
 
 ## Current resume point
 
-**Continue Round 8 with Ender Chest lifecycle and alias parity.**
+**Continue Round 8 with Ender Chest lifecycle parity: leave/disband/disconnect/forced close and multi-viewer behavior.**
 
 Do not begin unrelated feature work until this Round 8 audit is complete. Do not clean-build yet.
