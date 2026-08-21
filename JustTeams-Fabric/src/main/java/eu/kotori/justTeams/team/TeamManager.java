@@ -57,6 +57,15 @@ public final class TeamManager {
         playerTeams.remove(playerUuid);
     }
 
+    public boolean toggleGlow(UUID playerUuid) {
+        Team team = getTeam(playerUuid);
+        if (team == null) throw new IllegalStateException("You are not in a team.");
+        if (!team.hasElevatedPermissions(playerUuid)) throw new IllegalStateException("Only the team owner or co-owner can change team glow.");
+        boolean enabled = !team.isGlowEnabled();
+        team.setGlowEnabled(enabled);
+        return enabled;
+    }
+
     public Collection<Team> getTeams() { return new ArrayList<>(teams.values()); }
     public int size() { return teams.size(); }
     public void clear() { teams.clear(); playerTeams.clear(); nextId = 1; }
