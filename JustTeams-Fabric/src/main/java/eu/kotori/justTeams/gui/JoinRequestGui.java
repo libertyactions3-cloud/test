@@ -107,6 +107,7 @@ public final class JoinRequestGui {
             team.removeJoinRequest(uuid);
             JustTeamsFabric.teams().addMember(team, new TeamPlayer(uuid, TeamRole.MEMBER, java.time.Instant.now(), false, false, false, true));
             save();
+            JustTeamsFabric.glow().refreshAll(player.getEntityWorld().getServer());
             notifyPlayer(uuid, "Your request to join " + team.getName() + " was accepted.");
             populate();
             sendContentUpdates();
