@@ -1,6 +1,7 @@
 package eu.kotori.justTeams.team;
 
 import eu.kotori.justTeams.economy.TeamBank;
+
 import net.minecraft.util.Formatting;
 
 import java.time.Instant;
@@ -32,6 +33,7 @@ public final class Team {
     private final List<UUID> invites = new ArrayList<>();
     private TeamSortType currentSortType = TeamSortType.JOIN_DATE;
     private final TeamBank bank;
+    private TeamEnderChest enderChest;
 
     public Team(int id, String name, String tag, UUID ownerUuid, boolean defaultPvpStatus, boolean defaultPublicStatus, boolean defaultGlowStatus) {
         this(id, name, tag, ownerUuid, defaultPvpStatus, defaultPublicStatus, defaultGlowStatus, Instant.now());
@@ -66,6 +68,8 @@ public final class Team {
     public List<TeamWarp> getWarps() { return warps; }
     public TeamWarp getWarp(String name) { return warps.stream().filter(warp -> warp.getName().equalsIgnoreCase(name)).findFirst().orElse(null); }
     public TeamBank getBank() { return bank; }
+    public TeamEnderChest getEnderChest() { return enderChest; }
+    public void setEnderChest(TeamEnderChest enderChest) { this.enderChest = enderChest; }
     public void setHome(TeamLocation home) { this.home = home; }
     public void clearHome() { this.home = null; }
     public void addWarp(TeamWarp warp) {
