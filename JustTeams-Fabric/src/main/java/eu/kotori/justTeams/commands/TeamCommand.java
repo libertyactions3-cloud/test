@@ -39,6 +39,7 @@ public final class TeamCommand {
                 .then(CommandManager.literal("leave").executes(c -> run(c.getSource(), JustTeamsPermissions.COMMAND_LEAVE, () -> leave(c.getSource()))))
                 .then(CommandManager.literal("disband").executes(c -> run(c.getSource(), JustTeamsPermissions.COMMAND_DISBAND, () -> disband(c.getSource()))))
                 .then(CommandManager.literal("pvp").executes(c -> run(c.getSource(), JustTeamsPermissions.COMMAND_PVP, () -> togglePvp(c.getSource()))))
+                .then(CommandManager.literal("glow").executes(c -> run(c.getSource(), JustTeamsPermissions.USER, () -> toggleGlow(c.getSource()))))
                 .then(CommandManager.literal("home")
                         .executes(c -> run(c.getSource(), JustTeamsPermissions.COMMAND_HOME, () -> useHome(c.getSource())))
                         .then(CommandManager.literal("set").executes(c -> run(c.getSource(), JustTeamsPermissions.COMMAND_SETHOME, () -> setHome(c.getSource()))))
@@ -114,18 +115,27 @@ public final class TeamCommand {
         return 1;
     }
 
+    private static int toggleGlow(ServerCommandSource s) throws Exception {
+        ServerPlayerEntity player = s.getPlayerOrThrow();
+        boolean enabled = JustTeamsFabric.teams().toggleGlow(player.getUuid());
+        JustTeamsFabric.storage().save(JustTeamsFabric.teams());
+        JustTeamsFabric.glow().refreshAll(s.getServer());
+        s.sendFeedback(() -> Text.literal("Team glow is now " + (enabled ? "ON" : "OFF") + "."), false);
+        return 1;
+    }
+
     private static int leave(ServerCommandSource s) throws Exception {
         ServerPlayerEntity p = s.getPlayerOrThrow(); Team t = JustTeamsFabric.teams().getTeam(p.getUuid());
         if (t == null) { s.sendError(Text.literal("You are not in a team.")); return 0; }
         if (t.isOwner(p.getUuid())) { s.sendError(Text.literal("The owner cannot leave the team. Use /team disband.")); return 0; }
-        TeamChatManager.disable(p.getUuid()); JustTeamsFabric.teams().removeMember(t, p.getUuid()); JustTeamsFabric.storage().save(JustTeamsFabric.teams());
+        TeamChatManager.disable(p.getUuid()); JustTeamsFabric.glow().stopGlowForPlayer(s.getServer(), p.getUuid()); JustTeamsFabric.teams().removeMember(t, p.getUuid()); JustTeamsFabric.storage().save(JustTeamsFabric.teams());
         s.sendFeedback(() -> Text.literal("You left " + t.getName() + "."), false); return 1;
     }
 
     private static int disband(ServerCommandSource s) throws Exception {
         ServerPlayerEntity p = s.getPlayerOrThrow(); Team t = JustTeamsFabric.teams().getTeam(p.getUuid());
         if (t == null || !t.isOwner(p.getUuid())) { s.sendError(Text.literal("You do not own a team.")); return 0; }
-        for (TeamPlayer member : t.getMembers()) TeamChatManager.disable(member.getPlayerUuid());
+        for (TeamPlayer member : t.getMembers()) { TeamChatManager.disable(member.getPlayerUuid()); JustTeamsFabric.glow().stopGlowForPlayer(s.getServer(), member.getPlayerUuid()); }
         JustTeamsFabric.teams().unregister(t); JustTeamsFabric.storage().save(JustTeamsFabric.teams());
         s.sendFeedback(() -> Text.literal("Disbanded " + t.getName() + "."), false); return 1;
     }
@@ -155,7 +165,7 @@ public final class TeamCommand {
     private static Team requireTeam(ServerCommandSource source, ServerPlayerEntity player) { Team team = JustTeamsFabric.teams().getTeam(player.getUuid()); if (team == null) throw new IllegalStateException("You are not in a team."); return team; }
 
     private static int invite(ServerCommandSource s, String name) throws Exception { ServerPlayerEntity owner = s.getPlayerOrThrow(); Team t = JustTeamsFabric.teams().getTeam(owner.getUuid()); if (t == null || !t.hasElevatedPermissions(owner.getUuid())) { s.sendError(Text.literal("Only the owner or co-owners can invite players.")); return 0; } ServerPlayerEntity target = s.getServer().getPlayerManager().getPlayerList().stream().filter(p -> p.getGameProfile().name().equalsIgnoreCase(name)).findFirst().orElse(null); if (target == null) { s.sendError(Text.literal("That player is not online.")); return 0; } if (JustTeamsFabric.teams().isInTeam(target.getUuid())) { s.sendError(Text.literal("That player is already in a team.")); return 0; } t.addInvite(target.getUuid()); JustTeamsFabric.storage().save(JustTeamsFabric.teams()); target.sendMessage(Text.literal("You have been invited to join " + t.getName() + ". Use /team accept " + t.getName() + ".")); s.sendFeedback(() -> Text.literal("Invited " + name + " to your team."), false); return 1; }
-    private static int acceptInvite(ServerCommandSource s, String name) throws Exception { ServerPlayerEntity p = s.getPlayerOrThrow(); if (JustTeamsFabric.teams().isInTeam(p.getUuid())) { s.sendError(Text.literal("You are already in a team.")); return 0; } Team t = findTeam(name); if (t == null || !t.hasInvite(p.getUuid())) { s.sendError(Text.literal("You do not have an invite to that team.")); return 0; } t.removeInvite(p.getUuid()); JustTeamsFabric.teams().addMember(t, new TeamPlayer(p.getUuid(), TeamRole.MEMBER, Instant.now(), false, false, false, true)); JustTeamsFabric.storage().save(JustTeamsFabric.teams()); s.sendFeedback(() -> Text.literal("You joined " + t.getName() + "."), false); return 1; }
+    private static int acceptInvite(ServerCommandSource s, String name) throws Exception { ServerPlayerEntity p = s.getPlayerOrThrow(); if (JustTeamsFabric.teams().isInTeam(p.getUuid())) { s.sendError(Text.literal("You are already in a team.")); return 0; } Team t = findTeam(name); if (t == null || !t.hasInvite(p.getUuid())) { s.sendError(Text.literal("You do not have an invite to that team.")); return 0; } t.removeInvite(p.getUuid()); JustTeamsFabric.teams().addMember(t, new TeamPlayer(p.getUuid(), TeamRole.MEMBER, Instant.now(), false, false, false, true)); JustTeamsFabric.storage().save(JustTeamsFabric.teams()); JustTeamsFabric.glow().refreshAll(s.getServer()); s.sendFeedback(() -> Text.literal("You joined " + t.getName() + "."), false); return 1; }
     private static int denyInvite(ServerCommandSource s, String name) throws Exception { ServerPlayerEntity p = s.getPlayerOrThrow(); Team t = findTeam(name); if (t == null || !t.hasInvite(p.getUuid())) { s.sendError(Text.literal("You do not have an invite to that team.")); return 0; } t.removeInvite(p.getUuid()); JustTeamsFabric.storage().save(JustTeamsFabric.teams()); s.sendFeedback(() -> Text.literal("Declined the invitation to " + t.getName() + "."), false); return 1; }
     private static int requestJoin(ServerCommandSource s, String name) throws Exception { ServerPlayerEntity player = s.getPlayerOrThrow(); if (JustTeamsFabric.teams().isInTeam(player.getUuid())) { s.sendError(Text.literal("You are already in a team.")); return 0; } Team t = findTeam(name); if (t == null) { s.sendError(Text.literal("Team not found.")); return 0; } if (!t.isPublic()) { s.sendError(Text.literal("That team is private. Ask an owner for an invitation.")); return 0; } if (t.hasJoinRequest(player.getUuid())) { s.sendError(Text.literal("You already have a pending request to that team.")); return 0; } t.addJoinRequest(player.getUuid()); JustTeamsFabric.storage().save(JustTeamsFabric.teams()); s.sendFeedback(() -> Text.literal("Join request sent to " + t.getName() + "."), false); for (ServerPlayerEntity online : s.getServer().getPlayerManager().getPlayerList()) if (t.hasElevatedPermissions(online.getUuid())) online.sendMessage(Text.literal(player.getName().getString() + " requested to join " + t.getName() + "."), false); return 1; }
     private static int cancelJoinRequest(ServerCommandSource s, String name) throws Exception { ServerPlayerEntity player = s.getPlayerOrThrow(); Team t = findTeam(name); if (t == null || !t.hasJoinRequest(player.getUuid())) { s.sendError(Text.literal("You do not have a pending request to that team.")); return 0; } t.removeJoinRequest(player.getUuid()); JustTeamsFabric.storage().save(JustTeamsFabric.teams()); s.sendFeedback(() -> Text.literal("Cancelled your request to " + t.getName() + "."), false); return 1; }
