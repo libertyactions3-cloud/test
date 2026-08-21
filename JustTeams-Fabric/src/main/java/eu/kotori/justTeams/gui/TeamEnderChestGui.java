@@ -55,6 +55,16 @@ public final class TeamEnderChestGui {
         if (!enderChest.hasViewers()) release(team);
     }
 
+    /** Removes a disconnected player's viewer registration and releases the chest when appropriate. */
+    public static void handleDisconnect(ServerPlayerEntity player) {
+        Team team = JustTeamsFabric.teams().getTeam(player.getUuid());
+        if (team == null) return;
+        TeamEnderChest enderChest = team.getEnderChest();
+        if (enderChest == null || !enderChest.getViewers().contains(player.getUuid())) return;
+        enderChest.removeViewer(player.getUuid());
+        if (!enderChest.hasViewers()) release(team);
+    }
+
     /** Closes one viewer before membership removal so its shared chest state is released safely. */
     public static void closeViewer(MinecraftServer server, Team team, UUID viewerUuid) {
         TeamEnderChest enderChest = team.getEnderChest();
