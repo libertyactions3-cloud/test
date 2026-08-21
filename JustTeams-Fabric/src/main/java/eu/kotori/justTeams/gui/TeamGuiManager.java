@@ -45,9 +45,9 @@ public final class TeamGuiManager {
                 if (team.hasElevatedPermissions(player.getUuid())) JoinRequestGui.open(player, team);
                 else player.sendMessage(Text.literal("Only the owner or co-owners can access join requests."), true);
             }
-            case 46 -> player.sendMessage(Text.literal("Team Ender Chest is the next GUI module."), true);
+            case 46 -> TeamEnderChestGui.open(player, team);
             case 47 -> TeamHomeGui.open(player, team);
-            case 48 -> player.sendMessage(Text.literal("Team Ender Chest is the next GUI module."), true);
+            case 48 -> { }
             case 50 -> {
                 if (player instanceof ServerPlayerEntity serverPlayer
                         && JustTeamsFabric.permissions().has(serverPlayer, JustTeamsPermissions.COMMAND_BANK)) {
