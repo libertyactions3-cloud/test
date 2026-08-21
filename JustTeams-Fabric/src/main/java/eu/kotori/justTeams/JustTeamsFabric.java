@@ -4,6 +4,7 @@ import eu.kotori.justTeams.chat.TeamChatEvents;
 import eu.kotori.justTeams.commands.TeamCommand;
 import eu.kotori.justTeams.config.JustTeamsConfig;
 import eu.kotori.justTeams.gameplay.TeamFriendlyFire;
+import eu.kotori.justTeams.gui.TeamEnderChestGui;
 import eu.kotori.justTeams.permission.LuckPermsPermissionService;
 import eu.kotori.justTeams.permission.PermissionService;
 import eu.kotori.justTeams.storage.TeamStorage;
@@ -13,6 +14,7 @@ import eu.kotori.justTeams.util.ChatInputEvents;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
+import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.MinecraftServer;
 import org.slf4j.Logger;
@@ -45,6 +47,7 @@ public final class JustTeamsFabric implements ModInitializer {
         ServerLifecycleEvents.SERVER_STARTING.register(this::loadTeamData);
         ServerLifecycleEvents.AFTER_SAVE.register((server, flush, force) -> saveTeamData(server, false));
         ServerLifecycleEvents.SERVER_STOPPING.register(server -> saveTeamData(server, true));
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> TeamEnderChestGui.handleDisconnect(handler.getPlayer()));
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> TeamCommand.register(dispatcher));
         ChatInputEvents.register();
