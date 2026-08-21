@@ -7,10 +7,12 @@ import eu.kotori.justTeams.team.TeamEnderChest;
 import eu.kotori.justTeams.team.TeamPlayer;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.screen.SimpleNamedScreenHandlerFactory;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 
 import java.io.IOException;
+import java.util.UUID;
 
 /** Opens and manages the shared persistent Ender Chest belonging to a team. */
 public final class TeamEnderChestGui {
@@ -21,7 +23,6 @@ public final class TeamEnderChestGui {
             player.sendMessage(Text.literal("The team Ender Chest is disabled."), true);
             return;
         }
-
         if (!(player instanceof ServerPlayerEntity serverPlayer)) return;
         TeamPlayer member = team.getMember(player.getUuid());
         if (member == null) {
@@ -38,11 +39,8 @@ public final class TeamEnderChestGui {
         if (enderChest == null) {
             enderChest = new TeamEnderChest(team, JustTeamsFabric.config().getEnderChestRows());
             team.setEnderChest(enderChest);
-            enderChest.setSaveCallback(() -> save());
-        } else {
-            enderChest.setSaveCallback(() -> save());
         }
-
+        enderChest.setSaveCallback(TeamEnderChestGui::save);
         enderChest.addViewer(player.getUuid());
         player.openHandledScreen(new SimpleNamedScreenHandlerFactory(
                 (syncId, playerInventory, ignored) -> new TeamEnderChestScreenHandler(syncId, playerInventory, team),
@@ -53,13 +51,29 @@ public final class TeamEnderChestGui {
     static void handleClosed(PlayerEntity player, Team team) {
         TeamEnderChest enderChest = team.getEnderChest();
         if (enderChest == null) return;
-
         enderChest.removeViewer(player.getUuid());
-        if (!enderChest.hasViewers()) {
-            save();
-            enderChest.setSaveCallback(null);
-            team.setEnderChest(null);
+        if (!enderChest.hasViewers()) release(team);
+    }
+
+    /** Saves the chest and closes every tracked viewer before team removal. */
+    public static void closeAndRelease(MinecraftServer server, Team team) {
+        TeamEnderChest enderChest = team.getEnderChest();
+        if (enderChest == null) return;
+        for (UUID viewerUuid : enderChest.getViewers()) {
+            ServerPlayerEntity viewer = server.getPlayerManager().getPlayer(viewerUuid);
+            if (viewer != null && viewer.currentScreenHandler instanceof TeamEnderChestScreenHandler) {
+                viewer.closeHandledScreen();
+            }
         }
+        release(team);
+    }
+
+    private static void release(Team team) {
+        TeamEnderChest enderChest = team.getEnderChest();
+        if (enderChest == null) return;
+        save();
+        enderChest.setSaveCallback(null);
+        team.setEnderChest(null);
     }
 
     private static void save() {
