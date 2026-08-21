@@ -1,5 +1,6 @@
 package eu.kotori.justTeams.storage;
 
+import eu.kotori.justTeams.JustTeamsFabric;
 import eu.kotori.justTeams.team.Team;
 import eu.kotori.justTeams.team.TeamEnderChest;
 import eu.kotori.justTeams.team.TeamLocation;
@@ -72,7 +73,6 @@ public final class TeamStorage {
     }
 
     private void writeBank(Team team, NbtCompound teamTag) { NbtList bank = team.getBank().toNbtList(); if (!bank.isEmpty()) teamTag.put("bank", bank); }
-
     private void readBank(Team team, NbtCompound teamTag) { if (teamTag.contains("bank")) team.getBank().readNbtList(teamTag.getListOrEmpty("bank")); }
 
     private void writeEnderChest(Team team, NbtCompound teamTag) {
@@ -84,7 +84,7 @@ public final class TeamStorage {
 
     private void readEnderChest(Team team, NbtCompound teamTag) {
         if (!teamTag.contains("enderChest")) return;
-        TeamEnderChest enderChest = new TeamEnderChest(team, 3);
+        TeamEnderChest enderChest = new TeamEnderChest(team, JustTeamsFabric.config().getEnderChestRows());
         enderChest.readNbtList(teamTag.getListOrEmpty("enderChest"));
         team.setEnderChest(enderChest);
     }
