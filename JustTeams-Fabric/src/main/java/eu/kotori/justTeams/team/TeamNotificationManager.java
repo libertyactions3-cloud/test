@@ -19,7 +19,7 @@ public final class TeamNotificationManager {
     public static void notifyLeave(MinecraftServer server, Team team, UUID playerUuid) {
         ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerUuid);
         if (player != null) player.sendMessage(Text.literal("You left " + team.getName() + "."), false);
-        broadcastExcept(server, team, playerUuid, Text.literal(playerName(server, playerUuid) + " has left the team."));
+        broadcastExcept(server, team, Text.literal(playerName(server, playerUuid) + " has left the team."), playerUuid);
     }
 
     public static void notifyKick(MinecraftServer server, Team team, UUID kickerUuid, UUID targetUuid) {
@@ -31,7 +31,7 @@ public final class TeamNotificationManager {
             kicker.sendMessage(Text.literal("You have kicked " + targetName + " from the team."), false);
         }
 
-        broadcastExcept(server, team, targetUuid, Text.literal(playerName(server, targetUuid) + " has left the team."));
+        broadcastExcept(server, team, Text.literal(playerName(server, targetUuid) + " has left the team."), kickerUuid, targetUuid);
 
         if (target != null) target.sendMessage(Text.literal("You have been kicked from the team " + team.getName() + "."), false);
     }
@@ -39,13 +39,20 @@ public final class TeamNotificationManager {
     public static void notifyDisband(MinecraftServer server, Team team, UUID ownerUuid) {
         ServerPlayerEntity owner = server.getPlayerManager().getPlayer(ownerUuid);
         if (owner != null) owner.sendMessage(Text.literal("You have successfully disbanded your team."), false);
-        broadcastExcept(server, team, ownerUuid, Text.literal("The team " + team.getName() + " has been disbanded."));
+        broadcastExcept(server, team, Text.literal("The team " + team.getName() + " has been disbanded."), ownerUuid);
     }
 
-    private static void broadcastExcept(MinecraftServer server, Team team, UUID excludedUuid, Text message) {
+    private static void broadcastExcept(MinecraftServer server, Team team, Text message, UUID... excludedUuids) {
         for (TeamPlayer member : team.getMembers()) {
             UUID uuid = member.getPlayerUuid();
-            if (uuid.equals(excludedUuid)) continue;
+            boolean excluded = false;
+            for (UUID excludedUuid : excludedUuids) {
+                if (uuid.equals(excludedUuid)) {
+                    excluded = true;
+                    break;
+                }
+            }
+            if (excluded) continue;
             ServerPlayerEntity player = server.getPlayerManager().getPlayer(uuid);
             if (player != null) player.sendMessage(message, false);
         }
