@@ -50,8 +50,11 @@ public final class TeamGuiManager {
     }
 
     private static void leaveOrDisband(PlayerEntity player, Team team) {
+        if (player instanceof ServerPlayerEntity serverPlayer) {
+            if (team.isOwner(player.getUuid())) TeamEnderChestGui.closeAndRelease(serverPlayer.getEntityWorld().getServer(), team);
+            else TeamEnderChestGui.closeViewer(serverPlayer.getEntityWorld().getServer(), team, player.getUuid());
+        }
         if (team.isOwner(player.getUuid())) {
-            if (player instanceof ServerPlayerEntity serverPlayer) TeamEnderChestGui.closeAndRelease(serverPlayer.getEntityWorld().getServer(), team);
             JustTeamsFabric.teams().unregister(team);
             save(); close(player);
             player.sendMessage(Text.literal("Team disbanded."), false);
