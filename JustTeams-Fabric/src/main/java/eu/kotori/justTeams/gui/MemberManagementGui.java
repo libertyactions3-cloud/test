@@ -69,6 +69,7 @@ public final class MemberManagementGui {
                 case 14 -> {
                     TeamChatManager.disable(target.getPlayerUuid());
                     if (player instanceof ServerPlayerEntity serverPlayer) {
+                        TeamEnderChestGui.closeViewer(serverPlayer.getEntityWorld().getServer(), team, target.getPlayerUuid());
                         JustTeamsFabric.glow().stopGlowForPlayer(serverPlayer.getEntityWorld().getServer(), target.getPlayerUuid());
                         JustTeamsFabric.teams().removeMember(team, target.getPlayerUuid());
                         save();
