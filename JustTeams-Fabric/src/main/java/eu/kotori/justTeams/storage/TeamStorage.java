@@ -1,6 +1,7 @@
 package eu.kotori.justTeams.storage;
 
 import eu.kotori.justTeams.team.Team;
+import eu.kotori.justTeams.team.TeamEnderChest;
 import eu.kotori.justTeams.team.TeamLocation;
 import eu.kotori.justTeams.team.TeamManager;
 import eu.kotori.justTeams.team.TeamPlayer;
@@ -21,7 +22,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 public final class TeamStorage {
-    private static final int DATA_VERSION = 4;
+    private static final int DATA_VERSION = 5;
     private final Path path = FabricLoader.getInstance().getConfigDir().resolve("justteams").resolve("teams.dat");
 
     public void load(TeamManager manager) throws IOException {
@@ -34,6 +35,7 @@ public final class TeamStorage {
             NbtCompound teamTag = teams.getCompoundOrEmpty(i);
             Team team = readTeam(teamTag);
             readBank(team, teamTag);
+            readEnderChest(team, teamTag);
             manager.register(team);
         }
     }
@@ -46,6 +48,7 @@ public final class TeamStorage {
         for (Team team : manager.getTeams()) {
             NbtCompound teamTag = writeTeam(team);
             writeBank(team, teamTag);
+            writeEnderChest(team, teamTag);
             teams.add(teamTag);
         }
         root.put("teams", teams);
@@ -69,7 +72,23 @@ public final class TeamStorage {
     }
 
     private void writeBank(Team team, NbtCompound teamTag) { NbtList bank = team.getBank().toNbtList(); if (!bank.isEmpty()) teamTag.put("bank", bank); }
+
     private void readBank(Team team, NbtCompound teamTag) { if (teamTag.contains("bank")) team.getBank().readNbtList(teamTag.getListOrEmpty("bank")); }
+
+    private void writeEnderChest(Team team, NbtCompound teamTag) {
+        TeamEnderChest enderChest = team.getEnderChest();
+        if (enderChest == null) return;
+        NbtList inventory = enderChest.toNbtList();
+        if (!inventory.isEmpty()) teamTag.put("enderChest", inventory);
+    }
+
+    private void readEnderChest(Team team, NbtCompound teamTag) {
+        if (!teamTag.contains("enderChest")) return;
+        TeamEnderChest enderChest = new TeamEnderChest(team, 3);
+        enderChest.readNbtList(teamTag.getListOrEmpty("enderChest"));
+        team.setEnderChest(enderChest);
+    }
+
     private NbtCompound writeLocation(TeamLocation location) { NbtCompound tag = new NbtCompound(); tag.putString("dimension", location.getDimension()); tag.putDouble("x", location.getX()); tag.putDouble("y", location.getY()); tag.putDouble("z", location.getZ()); tag.putFloat("yaw", location.getYaw()); tag.putFloat("pitch", location.getPitch()); return tag; }
     private NbtCompound writeWarp(TeamWarp warp) { NbtCompound tag = new NbtCompound(); tag.putString("name", warp.getName()); tag.putString("owner", warp.getOwner().toString()); tag.putString("password", warp.getPassword()); tag.putDouble("cost", warp.getCost()); tag.putBoolean("enabled", warp.isEnabled()); tag.putBoolean("membersCanUse", warp.isMembersCanUse()); tag.putString("world", warp.getWorld()); tag.putDouble("x", warp.getX()); tag.putDouble("y", warp.getY()); tag.putDouble("z", warp.getZ()); tag.putFloat("yaw", warp.getYaw()); tag.putFloat("pitch", warp.getPitch()); return tag; }
     private NbtCompound writeMember(TeamPlayer member) { NbtCompound tag = new NbtCompound(); tag.putString("uuid", member.getPlayerUuid().toString()); tag.putString("role", member.getRole().name()); tag.putLong("joinDate", member.getJoinDate().toEpochMilli()); tag.putBoolean("canWithdraw", member.canWithdraw()); tag.putBoolean("canUseEnderChest", member.canUseEnderChest()); tag.putBoolean("canSetHome", member.canSetHome()); tag.putBoolean("canUseHome", member.canUseHome()); tag.putBoolean("canEditMembers", member.canEditMembers()); tag.putBoolean("canEditCoOwners", member.canEditCoOwners()); tag.putBoolean("canKickMembers", member.canKickMembers()); tag.putBoolean("canPromoteMembers", member.canPromoteMembers()); tag.putBoolean("canDemoteMembers", member.canDemoteMembers()); return tag; }
