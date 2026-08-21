@@ -55,16 +55,24 @@ public final class TeamEnderChestGui {
         if (!enderChest.hasViewers()) release(team);
     }
 
+    /** Closes one viewer before membership removal so its shared chest state is released safely. */
+    public static void closeViewer(MinecraftServer server, Team team, UUID viewerUuid) {
+        TeamEnderChest enderChest = team.getEnderChest();
+        if (enderChest == null) return;
+        ServerPlayerEntity viewer = server.getPlayerManager().getPlayer(viewerUuid);
+        if (viewer != null && viewer.currentScreenHandler instanceof TeamEnderChestScreenHandler) {
+            viewer.closeHandledScreen();
+        } else {
+            enderChest.removeViewer(viewerUuid);
+            if (!enderChest.hasViewers()) release(team);
+        }
+    }
+
     /** Saves the chest and closes every tracked viewer before team removal. */
     public static void closeAndRelease(MinecraftServer server, Team team) {
         TeamEnderChest enderChest = team.getEnderChest();
         if (enderChest == null) return;
-        for (UUID viewerUuid : enderChest.getViewers()) {
-            ServerPlayerEntity viewer = server.getPlayerManager().getPlayer(viewerUuid);
-            if (viewer != null && viewer.currentScreenHandler instanceof TeamEnderChestScreenHandler) {
-                viewer.closeHandledScreen();
-            }
-        }
+        for (UUID viewerUuid : enderChest.getViewers()) closeViewer(server, team, viewerUuid);
         release(team);
     }
 
