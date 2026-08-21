@@ -3,6 +3,7 @@ package eu.kotori.justTeams.gui;
 import eu.kotori.justTeams.JustTeamsFabric;
 import eu.kotori.justTeams.chat.TeamChatManager;
 import eu.kotori.justTeams.team.Team;
+import eu.kotori.justTeams.team.TeamNotificationManager;
 import eu.kotori.justTeams.team.TeamPlayer;
 import eu.kotori.justTeams.team.TeamRole;
 import net.minecraft.component.DataComponentTypes;
@@ -69,10 +70,16 @@ public final class MemberManagementGui {
                     TeamChatManager.disable(target.getPlayerUuid());
                     if (player instanceof ServerPlayerEntity serverPlayer) {
                         JustTeamsFabric.glow().stopGlowForPlayer(serverPlayer.getEntityWorld().getServer(), target.getPlayerUuid());
+                        JustTeamsFabric.teams().removeMember(team, target.getPlayerUuid());
+                        save();
+                        TeamNotificationManager.notifyKick(serverPlayer.getEntityWorld().getServer(), team, player.getUuid(), target.getPlayerUuid());
+                    } else {
+                        JustTeamsFabric.teams().removeMember(team, target.getPlayerUuid());
+                        save();
                     }
-                    JustTeamsFabric.teams().removeMember(team, target.getPlayerUuid());
                     close(player);
                     TeamGuiManager.openMain(player);
+                    return;
                 }
                 case 16 -> target.setCanWithdraw(!target.canWithdraw()); case 17 -> target.setCanUseEnderChest(!target.canUseEnderChest());
                 case 18 -> target.setCanSetHome(!target.canSetHome()); case 19 -> target.setCanUseHome(!target.canUseHome()); case 20 -> target.setCanKickMembers(!target.canKickMembers());
