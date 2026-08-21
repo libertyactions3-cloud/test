@@ -1,6 +1,7 @@
 package eu.kotori.justTeams.gui;
 
 import eu.kotori.justTeams.JustTeamsFabric;
+import eu.kotori.justTeams.chat.TeamChatManager;
 import eu.kotori.justTeams.team.Team;
 import eu.kotori.justTeams.team.TeamPlayer;
 import eu.kotori.justTeams.team.TeamRole;
@@ -64,7 +65,15 @@ public final class MemberManagementGui {
             switch (slot) {
                 case 11 -> { if (target.getRole() == TeamRole.MEMBER) target.setRole(TeamRole.CO_OWNER); }
                 case 12 -> { if (target.getRole() == TeamRole.CO_OWNER) target.setRole(TeamRole.MEMBER); }
-                case 14 -> { JustTeamsFabric.teams().removeMember(team, target.getPlayerUuid()); close(player); TeamGuiManager.openMain(player); }
+                case 14 -> {
+                    TeamChatManager.disable(target.getPlayerUuid());
+                    if (player instanceof ServerPlayerEntity serverPlayer) {
+                        JustTeamsFabric.glow().stopGlowForPlayer(serverPlayer.getEntityWorld().getServer(), target.getPlayerUuid());
+                    }
+                    JustTeamsFabric.teams().removeMember(team, target.getPlayerUuid());
+                    close(player);
+                    TeamGuiManager.openMain(player);
+                }
                 case 16 -> target.setCanWithdraw(!target.canWithdraw()); case 17 -> target.setCanUseEnderChest(!target.canUseEnderChest());
                 case 18 -> target.setCanSetHome(!target.canSetHome()); case 19 -> target.setCanUseHome(!target.canUseHome()); case 20 -> target.setCanKickMembers(!target.canKickMembers());
                 default -> { return; }
