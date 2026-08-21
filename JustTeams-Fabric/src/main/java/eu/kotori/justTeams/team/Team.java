@@ -1,6 +1,7 @@
 package eu.kotori.justTeams.team;
 
 import eu.kotori.justTeams.economy.TeamBank;
+import net.minecraft.util.Formatting;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -20,6 +21,7 @@ public final class Team {
     private boolean pvpEnabled;
     private boolean publicTeam;
     private boolean glowEnabled;
+    private Formatting glowColor;
     private double balance;
     private int kills;
     private int deaths;
@@ -56,6 +58,7 @@ public final class Team {
     public boolean isPvpEnabled() { return pvpEnabled; }
     public boolean isPublic() { return publicTeam; }
     public boolean isGlowEnabled() { return glowEnabled; }
+    public Formatting getGlowColor() { return glowColor; }
     public double getBalance() { return balance; }
     public int getKills() { return kills; }
     public int getDeaths() { return deaths; }
@@ -78,6 +81,7 @@ public final class Team {
     public void setPvpEnabled(boolean enabled) { this.pvpEnabled = enabled; }
     public void setPublic(boolean value) { this.publicTeam = value; }
     public void setGlowEnabled(boolean enabled) { this.glowEnabled = enabled; }
+    public void setGlowColor(Formatting color) { this.glowColor = color; }
     public void setBalance(double balance) { this.balance = balance; }
     public void addBalance(double amount) { this.balance += amount; }
     public void removeBalance(double amount) { this.balance -= amount; }
