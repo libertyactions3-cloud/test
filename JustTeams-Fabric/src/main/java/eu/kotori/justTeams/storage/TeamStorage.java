@@ -12,6 +12,7 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtIo;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.nbt.NbtString;
+import net.minecraft.util.Formatting;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -20,17 +21,13 @@ import java.time.Instant;
 import java.util.UUID;
 
 public final class TeamStorage {
-    private static final int DATA_VERSION = 3;
+    private static final int DATA_VERSION = 4;
     private final Path path = FabricLoader.getInstance().getConfigDir().resolve("justteams").resolve("teams.dat");
 
     public void load(TeamManager manager) throws IOException {
         manager.clear();
         Files.createDirectories(path.getParent());
-        if (!Files.exists(path)) {
-            save(manager);
-            return;
-        }
-
+        if (!Files.exists(path)) { save(manager); return; }
         NbtCompound root = NbtIo.read(path);
         NbtList teams = root.getListOrEmpty("teams");
         for (int i = 0; i < teams.size(); i++) {
@@ -61,6 +58,7 @@ public final class TeamStorage {
         NbtCompound tag = new NbtCompound();
         tag.putInt("id", team.getId()); tag.putString("name", team.getName()); tag.putString("tag", team.getTag()); tag.putString("description", team.getDescription()); tag.putString("owner", team.getOwnerUuid().toString());
         tag.putLong("creationDate", team.getCreationDate().toEpochMilli()); tag.putBoolean("pvpEnabled", team.isPvpEnabled()); tag.putBoolean("publicTeam", team.isPublic()); tag.putBoolean("glowEnabled", team.isGlowEnabled());
+        if (team.getGlowColor() != null) tag.putString("glowColor", team.getGlowColor().getName());
         tag.putDouble("balance", team.getBalance()); tag.putInt("kills", team.getKills()); tag.putInt("deaths", team.getDeaths()); tag.putString("sortType", team.getCurrentSortType().name());
         if (team.getHome() != null) tag.put("home", writeLocation(team.getHome()));
         NbtList warps = new NbtList(); for (TeamWarp warp : team.getWarps()) warps.add(writeWarp(warp)); tag.put("warps", warps);
@@ -70,22 +68,16 @@ public final class TeamStorage {
         return tag;
     }
 
-    private void writeBank(Team team, NbtCompound teamTag) {
-        NbtList bank = team.getBank().toNbtList();
-        if (!bank.isEmpty()) teamTag.put("bank", bank);
-    }
-
-    private void readBank(Team team, NbtCompound teamTag) {
-        if (!teamTag.contains("bank")) return;
-        team.getBank().readNbtList(teamTag.getListOrEmpty("bank"));
-    }
-
+    private void writeBank(Team team, NbtCompound teamTag) { NbtList bank = team.getBank().toNbtList(); if (!bank.isEmpty()) teamTag.put("bank", bank); }
+    private void readBank(Team team, NbtCompound teamTag) { if (teamTag.contains("bank")) team.getBank().readNbtList(teamTag.getListOrEmpty("bank")); }
     private NbtCompound writeLocation(TeamLocation location) { NbtCompound tag = new NbtCompound(); tag.putString("dimension", location.getDimension()); tag.putDouble("x", location.getX()); tag.putDouble("y", location.getY()); tag.putDouble("z", location.getZ()); tag.putFloat("yaw", location.getYaw()); tag.putFloat("pitch", location.getPitch()); return tag; }
     private NbtCompound writeWarp(TeamWarp warp) { NbtCompound tag = new NbtCompound(); tag.putString("name", warp.getName()); tag.putString("owner", warp.getOwner().toString()); tag.putString("password", warp.getPassword()); tag.putDouble("cost", warp.getCost()); tag.putBoolean("enabled", warp.isEnabled()); tag.putBoolean("membersCanUse", warp.isMembersCanUse()); tag.putString("world", warp.getWorld()); tag.putDouble("x", warp.getX()); tag.putDouble("y", warp.getY()); tag.putDouble("z", warp.getZ()); tag.putFloat("yaw", warp.getYaw()); tag.putFloat("pitch", warp.getPitch()); return tag; }
     private NbtCompound writeMember(TeamPlayer member) { NbtCompound tag = new NbtCompound(); tag.putString("uuid", member.getPlayerUuid().toString()); tag.putString("role", member.getRole().name()); tag.putLong("joinDate", member.getJoinDate().toEpochMilli()); tag.putBoolean("canWithdraw", member.canWithdraw()); tag.putBoolean("canUseEnderChest", member.canUseEnderChest()); tag.putBoolean("canSetHome", member.canSetHome()); tag.putBoolean("canUseHome", member.canUseHome()); tag.putBoolean("canEditMembers", member.canEditMembers()); tag.putBoolean("canEditCoOwners", member.canEditCoOwners()); tag.putBoolean("canKickMembers", member.canKickMembers()); tag.putBoolean("canPromoteMembers", member.canPromoteMembers()); tag.putBoolean("canDemoteMembers", member.canDemoteMembers()); return tag; }
+
     private Team readTeam(NbtCompound tag) {
         int id = tag.getInt("id", 0); String name = tag.getString("name").orElse("Unnamed Team"); UUID owner = UUID.fromString(tag.getString("owner").orElseThrow());
         Team team = new Team(id, name, tag.getString("tag").orElse(""), owner, tag.getBoolean("pvpEnabled").orElse(true), tag.getBoolean("publicTeam").orElse(false), tag.getBoolean("glowEnabled").orElse(false), Instant.ofEpochMilli(tag.getLong("creationDate", System.currentTimeMillis())));
+        tag.getString("glowColor").ifPresent(value -> { try { Formatting color = Formatting.byName(value); if (color != null && color.isColor()) team.setGlowColor(color); } catch (IllegalArgumentException ignored) { } });
         team.setDescription(tag.getString("description").orElse("A new Team!")); team.setBalance(tag.getDouble("balance", 0D)); team.setKills(tag.getInt("kills", 0)); team.setDeaths(tag.getInt("deaths", 0));
         try { team.setSortType(TeamSortType.valueOf(tag.getString("sortType").orElse("JOIN_DATE"))); } catch (IllegalArgumentException ignored) { }
         if (tag.contains("home")) team.setHome(readLocation(tag.getCompoundOrEmpty("home")));
