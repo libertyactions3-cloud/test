@@ -37,32 +37,38 @@ public final class JustTeamsConfig {
             try (InputStream input = Files.newInputStream(file)) {
                 properties.load(input);
             }
-        } else {
-            properties.setProperty("bank.enabled", "true");
-            properties.setProperty("bank.currency-items", DEFAULT_CURRENCY_ITEMS);
-            properties.setProperty("glow.colors.owner", "RED");
-            properties.setProperty("glow.colors.co-owner", "DARK_RED");
-            properties.setProperty("glow.colors.member", "WHITE");
-            properties.setProperty("enderchest.enabled", "true");
-            properties.setProperty("enderchest.rows", "3");
-            properties.setProperty("team_home.warmup_seconds", "5");
-            properties.setProperty("team_home.cooldown_seconds", "300");
-            properties.setProperty("team_warps.warmup_seconds", "5");
-            properties.setProperty("team_warps.cooldown_seconds", "300");
-            properties.setProperty("effects.sounds.enabled", "true");
-            properties.setProperty("effects.sounds.teleport", "BLOCK_BEACON_ACTIVATE");
-            properties.setProperty("effects.sounds.error", "BLOCK_NOTE_BLOCK_BASS");
-            properties.setProperty("effects.particles.enabled", "true");
-            properties.setProperty("effects.particles.teleport_warmup", "PORTAL");
-            properties.setProperty("effects.particles.teleport_success", "END_ROD");
-            save();
         }
+
+        boolean changed = ensureDefaults();
+        if (changed) save();
 
         currencyItems = parseCurrencyItems(properties.getProperty("bank.currency-items", DEFAULT_CURRENCY_ITEMS));
         glowColors.clear();
         for (TeamRole role : TeamRole.values()) {
             glowColors.put(role, parseFormatting(properties.getProperty("glow.colors." + roleKey(role), "WHITE")));
         }
+    }
+
+    private boolean ensureDefaults() {
+        boolean changed = false;
+        changed |= properties.putIfAbsent("bank.enabled", "true") == null;
+        changed |= properties.putIfAbsent("bank.currency-items", DEFAULT_CURRENCY_ITEMS) == null;
+        changed |= properties.putIfAbsent("glow.colors.owner", "RED") == null;
+        changed |= properties.putIfAbsent("glow.colors.co-owner", "DARK_RED") == null;
+        changed |= properties.putIfAbsent("glow.colors.member", "WHITE") == null;
+        changed |= properties.putIfAbsent("enderchest.enabled", "true") == null;
+        changed |= properties.putIfAbsent("enderchest.rows", "3") == null;
+        changed |= properties.putIfAbsent("team_home.warmup_seconds", "5") == null;
+        changed |= properties.putIfAbsent("team_home.cooldown_seconds", "300") == null;
+        changed |= properties.putIfAbsent("team_warps.warmup_seconds", "5") == null;
+        changed |= properties.putIfAbsent("team_warps.cooldown_seconds", "300") == null;
+        changed |= properties.putIfAbsent("effects.sounds.enabled", "true") == null;
+        changed |= properties.putIfAbsent("effects.sounds.teleport", "BLOCK_BEACON_ACTIVATE") == null;
+        changed |= properties.putIfAbsent("effects.sounds.error", "BLOCK_NOTE_BLOCK_BASS") == null;
+        changed |= properties.putIfAbsent("effects.particles.enabled", "true") == null;
+        changed |= properties.putIfAbsent("effects.particles.teleport_warmup", "PORTAL") == null;
+        changed |= properties.putIfAbsent("effects.particles.teleport_success", "END_ROD") == null;
+        return changed;
     }
 
     public void save() throws IOException {
