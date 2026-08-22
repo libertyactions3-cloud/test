@@ -10,6 +10,7 @@ import eu.kotori.justTeams.permission.PermissionService;
 import eu.kotori.justTeams.storage.TeamStorage;
 import eu.kotori.justTeams.team.GlowManager;
 import eu.kotori.justTeams.team.TeamManager;
+import eu.kotori.justTeams.team.TeamTeleportManager;
 import eu.kotori.justTeams.util.ChatInputEvents;
 import net.fabricmc.api.ModInitializer;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
@@ -30,6 +31,7 @@ public final class JustTeamsFabric implements ModInitializer {
     private static JustTeamsConfig config;
     private static PermissionService permissionService;
     private static GlowManager glowManager;
+    private static TeamTeleportManager teleportManager;
 
     @Override
     public void onInitialize() {
@@ -43,11 +45,18 @@ public final class JustTeamsFabric implements ModInitializer {
         teamStorage = new TeamStorage();
         permissionService = createPermissionService();
         glowManager = new GlowManager();
+        teleportManager = new TeamTeleportManager();
 
         ServerLifecycleEvents.SERVER_STARTING.register(this::loadTeamData);
         ServerLifecycleEvents.AFTER_SAVE.register((server, flush, force) -> saveTeamData(server, false));
-        ServerLifecycleEvents.SERVER_STOPPING.register(server -> saveTeamData(server, true));
-        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> TeamEnderChestGui.handleDisconnect(handler.getPlayer()));
+        ServerLifecycleEvents.SERVER_STOPPING.register(server -> {
+            teleportManager.clear();
+            saveTeamData(server, true);
+        });
+        ServerPlayConnectionEvents.DISCONNECT.register((handler, server) -> {
+            TeamEnderChestGui.handleDisconnect(handler.getPlayer());
+            teleportManager.handleDisconnect(handler.getPlayer().getUuid());
+        });
 
         CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> TeamCommand.register(dispatcher));
         ChatInputEvents.register();
@@ -109,5 +118,10 @@ public final class JustTeamsFabric implements ModInitializer {
     public static GlowManager glow() {
         if (glowManager == null) throw new IllegalStateException("JustTeams has not initialized");
         return glowManager;
+    }
+
+    public static TeamTeleportManager teleport() {
+        if (teleportManager == null) throw new IllegalStateException("JustTeams has not initialized");
+        return teleportManager;
     }
 }
