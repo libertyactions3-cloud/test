@@ -45,6 +45,16 @@ public final class JustTeamsConfig {
             properties.setProperty("glow.colors.member", "WHITE");
             properties.setProperty("enderchest.enabled", "true");
             properties.setProperty("enderchest.rows", "3");
+            properties.setProperty("team_home.warmup_seconds", "5");
+            properties.setProperty("team_home.cooldown_seconds", "300");
+            properties.setProperty("team_warps.warmup_seconds", "5");
+            properties.setProperty("team_warps.cooldown_seconds", "300");
+            properties.setProperty("effects.sounds.enabled", "true");
+            properties.setProperty("effects.sounds.teleport", "BLOCK_BEACON_ACTIVATE");
+            properties.setProperty("effects.sounds.error", "BLOCK_NOTE_BLOCK_BASS");
+            properties.setProperty("effects.particles.enabled", "true");
+            properties.setProperty("effects.particles.teleport_warmup", "PORTAL");
+            properties.setProperty("effects.particles.teleport_success", "END_ROD");
             save();
         }
 
@@ -69,9 +79,27 @@ public final class JustTeamsConfig {
         catch (NumberFormatException ignored) { rows = 3; }
         return Math.max(1, Math.min(6, rows));
     }
+    public int getHomeWarmupSeconds() { return getNonNegativeInt("team_home.warmup_seconds", 5); }
+    public int getHomeCooldownSeconds() { return getNonNegativeInt("team_home.cooldown_seconds", 300); }
+    public int getWarpWarmupSeconds() { return getNonNegativeInt("team_warps.warmup_seconds", 5); }
+    public int getWarpCooldownSeconds() { return getNonNegativeInt("team_warps.cooldown_seconds", 300); }
+    public boolean areSoundsEnabled() { return Boolean.parseBoolean(properties.getProperty("effects.sounds.enabled", "true")); }
+    public boolean areParticlesEnabled() { return Boolean.parseBoolean(properties.getProperty("effects.particles.enabled", "true")); }
+    public String getTeleportSound() { return properties.getProperty("effects.sounds.teleport", "BLOCK_BEACON_ACTIVATE"); }
+    public String getErrorSound() { return properties.getProperty("effects.sounds.error", "BLOCK_NOTE_BLOCK_BASS"); }
+    public String getWarmupParticle() { return properties.getProperty("effects.particles.teleport_warmup", "PORTAL"); }
+    public String getSuccessParticle() { return properties.getProperty("effects.particles.teleport_success", "END_ROD"); }
     public Set<Item> getCurrencyItems() { return currencyItems; }
     public Path getFile() { return file; }
     public Formatting getGlowColor(TeamRole role) { return glowColors.getOrDefault(role, Formatting.WHITE); }
+
+    private int getNonNegativeInt(String key, int fallback) {
+        try {
+            return Math.max(0, Integer.parseInt(properties.getProperty(key, String.valueOf(fallback))));
+        } catch (NumberFormatException ignored) {
+            return fallback;
+        }
+    }
 
     private static String roleKey(TeamRole role) {
         return role.name().toLowerCase().replace('_', '-');
